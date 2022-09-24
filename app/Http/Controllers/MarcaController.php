@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Marca;
 use Illuminate\Http\Request;
 use PhpParser\Node\Stmt\Foreach_;
+use Illuminate\Support\Facades\Storage;
 
 class MarcaController extends Controller
 {
@@ -20,7 +21,6 @@ class MarcaController extends Controller
      */
     public function index()
     {
-        //$marcas = Marca::all();
         $marcas = $this->marca->all();
         return response()->json($marcas, 200);
     }
@@ -101,20 +101,30 @@ class MarcaController extends Controller
 
             $regrasDinamicas = array();
 
-            foreach($marca->rules() as $input => $regra) {
+            foreach ($marca->rules() as $input => $regra) {
 
-                if(array_key_exists($input, $request->all())) {
+                if (array_key_exists($input, $request->all())) {
                     $regrasDinamicas[$input] = $regra;
                 }
             }
 
             $request->validate($regrasDinamicas, $marca->feedback());
-
         } else {
             $request->validate($marca->rules(), $marca->feedback());
         }
 
-        $marca->update($request->all());
+        //remove arquivo anterior caso um novo tenha sido feito upload
+        if ($request->file('imagem')) {
+            Storage::disk('public')->delete($marca->imagem);
+        }
+
+        $imagem = $request->file('imagem');
+        $imagem_urn = $imagem->store('imagens', 'public');
+
+        $marca->update([
+            'nome' => $request->nome,
+            'imagem' => $imagem_urn
+        ]);
         return response()->json($marca, 200);
     }
 
@@ -131,6 +141,9 @@ class MarcaController extends Controller
         if ($marca === null) {
             return response()->json(['erro' => 'Impossivel realizar a exclusão. O recurso solicitado não existe'], 404);
         }
+
+        //remove arquivo 
+        storage::disk('public')->delete($marca->imagem);
 
         $marca->delete();
         return response()->json(['msg' => 'A marca foi removida com sucesso'], 200);
