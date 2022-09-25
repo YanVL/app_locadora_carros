@@ -33,7 +33,7 @@ class ModeloController extends Controller
         if ($request->has('filtro')) {
             $modeloRepository->filtro($request->filtro);
         }
-
+ 
         if ($request->has('atributos')) {
             $modeloRepository->selectAtributos($request->atributos);
         } 
